@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="FP2単語帳">
+<title>FP2級 単語帳</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root {
+  --bg: #F8F7F4; --surface: #FFFFFF; --border: #E8E6E1;
+  --text: #1A1917; --text2: #6B6860; --text3: #A09E99;
+  --accent: #1F4E79; --accent-light: #E6F1FB;
+  --success: #0F6E56; --success-light: #E1F5EE;
+  --radius: 16px; --radius-sm: 10px;
+}
+body {
+  font-family: -apple-system, 'Hiragino Sans', 'Yu Gothic', sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; display: flex; flex-direction: column;
+  max-width: 480px; margin: 0 auto;
+}
+.header {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 14px 20px 10px; position: sticky; top: 0; z-index: 10;
+}
+.header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.app-title { font-size: 16px; font-weight: 600; color: var(--accent); letter-spacing: -0.3px; }
+.counter-badge { font-size: 12px; color: var(--text2); background: var(--bg); padding: 3px 10px; border-radius: 20px; border: 1px solid var(--border); }
+.progress-wrap { display: flex; align-items: center; gap: 8px; }
+.progress-bar { flex: 1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--success), #1D9E75); border-radius: 3px; transition: width 0.4s ease; }
+.progress-label { font-size: 11px; color: var(--text3); white-space: nowrap; }
+.filter-scroll { overflow-x: auto; padding: 10px 20px; display: flex; gap: 6px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.filter-scroll::-webkit-scrollbar { display: none; }
+.filter-chip { white-space: nowrap; font-size: 12px; padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); color: var(--text2); cursor: pointer; transition: all 0.15s; font-family: inherit; }
+.filter-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.card-area { flex: 1; padding: 8px 20px 20px; display: flex; flex-direction: column; gap: 10px; }
+.flip-wrap { perspective: 1200px; height: 240px; }
+.flip-inner { position: relative; width: 100%; height: 100%; transition: transform 0.45s cubic-bezier(0.4,0,0.2,1); transform-style: preserve-3d; }
+.flip-inner.flipped { transform: rotateY(180deg); }
+.card-face { position: absolute; inset: 0; border-radius: var(--radius); border: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.card-front { background: var(--surface); }
+.card-back { background: var(--surface); transform: rotateY(180deg); justify-content: flex-start; overflow-y: auto; padding: 16px 18px; }
+.field-tag { font-size: 11px; font-weight: 600; padding: 3px 12px; border-radius: 20px; margin-bottom: 14px; letter-spacing: 0.3px; }
+.card-term { font-size: 22px; font-weight: 600; color: var(--text); text-align: center; line-height: 1.4; letter-spacing: -0.5px; }
+.tap-hint { margin-top: 18px; font-size: 12px; color: var(--text3); }
+.def-header { width: 100%; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.def-field-tag { font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 20px; flex-shrink: 0; }
+.def-term { font-size: 14px; font-weight: 600; color: var(--text); }
+.def-body { font-size: 13px; color: var(--text); line-height: 1.8; width: 100%; margin-bottom: 10px; }
+.point-box { width: 100%; background: var(--accent-light); border-radius: var(--radius-sm); padding: 10px 14px; display: flex; gap: 8px; align-items: flex-start; }
+.point-icon { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+.point-text { font-size: 12px; color: var(--accent); line-height: 1.7; font-weight: 500; }
+.btn-row { display: flex; gap: 8px; }
+.btn { flex: 1; padding: 13px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 14px; font-family: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; font-weight: 500; }
+.btn:active { transform: scale(0.96); background: var(--bg); }
+.btn-answer { background: var(--accent-light); color: var(--accent); border-color: #B5D4F4; font-weight: 600; }
+.btn-answer:active { background: #C8DFF5; }
+.btn-known { background: var(--success-light); color: var(--success); border-color: #9FE1CB; }
+.btn-known:active { background: #C9EDDF; }
+.stats-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 16px; display: flex; justify-content: space-around; gap: 8px; }
+.stat-item { text-align: center; }
+.stat-num { font-size: 20px; font-weight: 600; color: var(--text); line-height: 1; margin-bottom: 3px; }
+.stat-num.green { color: var(--success); }
+.stat-label { font-size: 11px; color: var(--text3); }
+.stat-divider { width: 1px; background: var(--border); }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-top">
+    <div class="app-title">FP2級 単語帳</div>
+    <div class="counter-badge" id="counterBadge">1 / 200</div>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div class="progress-label" id="progressLabel">0 / 200 覚えた</div>
+  </div>
+</div>
+
+<div class="filter-scroll">
+  <button class="filter-chip active" onclick="filterField('all')" data-f="all">全分野</button>
+  <button class="filter-chip" onclick="filterField('A')" data-f="A">A. ライフ</button>
+  <button class="filter-chip" onclick="filterField('B')" data-f="B">B. リスク</button>
+  <button class="filter-chip" onclick="filterField('C')" data-f="C">C. 金融</button>
+  <button class="filter-chip" onclick="filterField('D')" data-f="D">D. タックス</button>
+  <button class="filter-chip" onclick="filterField('E')" data-f="E">E. 不動産</button>
+  <button class="filter-chip" onclick="filterField('F')" data-f="F">F. 相続</button>
+</div>
+
+<div class="card-area">
+  <div class="flip-wrap">
+    <div class="flip-inner" id="flipInner">
+      <div class="card-face card-front">
+        <span class="field-tag" id="frontTag"></span>
+        <div class="card-term" id="termText"></div>
+        <div class="tap-hint">↓ 答えを見るボタンで意味を確認</div>
+      </div>
+      <div class="card-face card-back">
+        <div class="def-header">
+          <span class="def-field-tag" id="backTag"></span>
+          <span class="def-term" id="backTerm"></span>
+        </div>
+        <div class="def-body" id="defBody"></div>
+        <div class="point-box">
+          <span class="point-icon">📌</span>
+          <span class="point-text" id="pointBody"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn" onclick="prevCard()">◀ 前へ</button>
+    <button class="btn btn-answer" onclick="showAnswer()" id="answerBtn">答えを見る</button>
+    <button class="btn" onclick="nextCard()">次へ ▶</button>
+  </div>
+
+  <button class="btn btn-known" style="width:100%;padding:13px;" onclick="markKnown()">
+    ✓ 覚えた！次へスキップ
+  </button>
+
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-num" id="statTotal">200</div>
+      <div class="stat-label">総単語数</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <div class="stat-num" id="statRemain">200</div>
+      <div class="stat-label">残り</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <div class="stat-num green" id="statKnown">0</div>
+      <div class="stat-label">覚えた</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CARDS = [
+// ===== A. ライフプランニングと資金計画 (40語) =====
+{f:"A",term:"終価係数",def:"現在の一定額を複利運用した場合の将来価値を求める係数。",point:"現在額 × 終価係数 = 将来額"},
+{f:"A",term:"現価係数",def:"将来の一定額を受け取るために現在必要な元本を求める係数。終価係数の逆数。",point:"将来額 × 現価係数 = 現在額"},
+{f:"A",term:"年金終価係数",def:"毎年一定額を積み立てた場合、一定期間後の元利合計を求める係数。",point:"毎年積立額 × 年金終価係数 = 将来の合計額"},
+{f:"A",term:"積立終価係数",def:"将来の目標額を達成するために毎年いくら積み立てればよいかを求める係数。年金終価係数の逆数。",point:"目標額 × 積立終価係数 = 毎年の積立額"},
+{f:"A",term:"年金現価係数",def:"将来にわたって毎年一定額を受け取るために現在必要な元本を求める係数。",point:"毎年受取額 × 年金現価係数 = 現在必要な元本"},
+{f:"A",term:"資本回収係数",def:"現在の元本を複利運用しながら毎年一定額を取り崩す場合の毎年の受取額を求める係数。年金現価係数の逆数。",point:"元本 × 資本回収係数 = 毎年の受取額"},
+{f:"A",term:"フラット35",def:"住宅金融支援機構と民間金融機関が提携した最長35年の全期間固定金利型住宅ローン。申込時の金利が全期間適用される。",point:"保証料・繰り上げ返済手数料が不要"},
+{f:"A",term:"元利均等返済",def:"毎月の返済額（元金＋利息）が一定となる返済方法。返済初期は利息の占める割合が大きい。",point:"総返済額は元金均等返済より多くなる傾向"},
+{f:"A",term:"元金均等返済",def:"毎月返済する元金部分が一定で、返済が進むにつれて利息が減り返済額が減少する方式。",point:"返済初期の負担は元利均等より大きい"},
+{f:"A",term:"高額療養費制度",def:"同一月内に支払った医療費の自己負担額が上限を超えた場合に超過分が払い戻される制度。",point:"限度額は所得区分により異なる。限度額適用認定証で窓口負担を抑制できる"},
+{f:"A",term:"iDeCo（個人型確定拠出年金）",def:"加入者が自ら掛金を拠出・運用し60歳以降に給付を受ける私的年金。掛金全額が小規模企業共済等掛金控除の対象。",point:"受取時：一時金（退職所得）または年金（雑所得）として課税"},
+{f:"A",term:"遺族厚生年金",def:"厚生年金の被保険者等が死亡した場合に遺族に支給される年金。額は死亡者の報酬比例部分の3/4。",point:"子のない30歳未満の妻は5年間の有期給付"},
+{f:"A",term:"出産手当金",def:"健康保険の被保険者が出産のために休業した場合に支給される給付金。出産日以前42日・出産後56日の範囲で支給。",point:"支給額：標準報酬日額の2/3 × 支給日数"},
+{f:"A",term:"傷病手当金",def:"健康保険の被保険者が業務外の病気・ケガで休業した場合に支給される給付金。支給期間は通算1年6ヵ月。",point:"支給額：標準報酬日額の2/3"},
+{f:"A",term:"老齢基礎年金",def:"国民年金の被保険者が原則10年以上の受給資格期間を満たして65歳になった場合に支給される年金。",point:"繰り上げ受給（60歳から）・繰り下げ受給（最大75歳まで）可"},
+{f:"A",term:"老齢厚生年金",def:"厚生年金の被保険者が老齢基礎年金の受給資格を満たした場合に老齢基礎年金に上乗せして支給される年金。",point:"報酬比例部分（在職中の報酬・加入期間で計算）が基礎"},
+{f:"A",term:"年金の繰り下げ受給",def:"老齢基礎・厚生年金の受給を66歳以降に遅らせること。1ヵ月繰り下げるごとに0.7%増額（最大75歳まで・最大84%増）。",point:"増額は生涯続く。ただし健康状態・税・社会保険料への影響も考慮"},
+{f:"A",term:"在職老齢年金",def:"60歳以降に厚生年金に加入しながら老齢厚生年金を受け取る場合、賃金と年金の合計額が一定基準を超えると年金の一部または全部が支給停止される仕組み。",point:"支給停止基準額：50万円（2024年度）"},
+{f:"A",term:"中高齢寡婦加算",def:"夫が死亡した時に40歳以上65歳未満で子のない妻（または子が18歳到達等で遺族基礎年金が失権した妻）に遺族厚生年金に加算される額。",point:"65歳以降は経過的寡婦加算に移行"},
+{f:"A",term:"国民年金の第3号被保険者",def:"厚生年金に加入している第2号被保険者（会社員等）の配偶者で、年収130万円未満の20歳以上60歳未満の者。保険料負担なし。",point:"年収130万円以上になると第1号被保険者として保険料納付義務が生じる"},
+{f:"A",term:"雇用保険の基本手当",def:"雇用保険の被保険者が失業した場合に支給される給付。所定給付日数は離職理由・年齢・被保険者期間により異なる。",point:"自己都合退職：2ヵ月（場合により3ヵ月）の給付制限がある"},
+{f:"A",term:"育児休業給付金",def:"雇用保険の被保険者が育児休業を取得した場合に支給される給付金。休業開始から6ヵ月は休業前賃金の67%、以降は50%。",point:"2025年〜：出生後一定期間の出生後休業支援給付金（実質手取り10割相当）も創設"},
+{f:"A",term:"介護休業給付金",def:"雇用保険の被保険者が要介護状態の家族のために介護休業を取得した場合に支給される給付金。休業前賃金の67%。",point:"対象家族1人につき通算93日・3回まで分割取得可"},
+{f:"A",term:"小規模企業共済",def:"個人事業主や小規模企業の役員等が廃業・退職に備えて積み立てる共済制度。掛金全額が小規模企業共済等掛金控除の対象。",point:"掛金月額1,000〜70,000円。受取時は退職所得または公的年金等の雑所得"},
+{f:"A",term:"中小企業退職金共済（中退共）",def:"中小企業の退職金制度を国が支援する共済制度。掛金は全額損金算入。従業員が直接共済から退職金を受け取る。",point:"新規加入・掛金増額時に国の助成あり"},
+{f:"A",term:"教育一般貸付（国の教育ローン）",def:"日本政策金融公庫が提供する教育資金の公的融資。学生1人につき最高350万円（一定の場合450万円）。",point:"世帯年収による借入上限あり。金利は固定（民間より低め）"},
+{f:"A",term:"日本学生支援機構の奨学金",def:"給付型（返済不要）と貸与型（第一種：無利子、第二種：有利子）がある奨学金制度。",point:"第一種（無利子）の方が選考基準が厳しい"},
+{f:"A",term:"信用保証協会",def:"中小企業・小規模事業者が金融機関から融資を受ける際の債務保証を行う公的機関。保証を受けることで融資を受けやすくなる。",point:"信用保証料は企業側が負担"},
+{f:"A",term:"ファクタリング",def:"企業が保有する売掛債権をファクタリング会社に売却し手数料を引いた金額を早期に現金化する手法。",point:"手形割引（手形を担保に借入）とは異なる"},
+{f:"A",term:"キャッシュフロー表",def:"現在の収支状況と今後のライフイベントをもとに、将来の収支・資産残高の推移を一覧にした表。FPの基本ツール。",point:"収入・支出・年間収支・資産残高の4項目が基本構成"},
+{f:"A",term:"後期高齢者医療制度",def:"75歳以上（一定の障害がある場合は65歳以上）の者を対象とした独立した医療保険制度。運営は都道府県ごとの広域連合。",point:"保険料は原則として年金から天引き（特別徴収）"},
+{f:"A",term:"任意継続被保険者",def:"退職後も在職中と同じ健康保険に最長2年間継続加入できる制度。保険料は全額自己負担（在職中の約2倍）。",point:"退職日の翌日から20日以内に申請が必要"},
+{f:"A",term:"国民健康保険",def:"会社員等以外の自営業者・無職の者などが加入する医療保険。都道府県・市区町村または国民健康保険組合が保険者。",point:"保険料（税）は所得・資産・世帯人数等に応じて算出"},
+{f:"A",term:"障害基礎年金",def:"国民年金の被保険者が障害認定日において障害等級1級または2級に該当する場合に支給される年金。",point:"1級：2級の1.25倍の額。子の加算あり"},
+{f:"A",term:"リバースモーゲージ",def:"自宅を担保にして金融機関から生活資金等を借り入れ、死亡時に自宅を売却して返済する仕組み。高齢者の資産活用策のひとつ。",point:"担保物件の価値下落や長生きリスクに注意"},
+{f:"A",term:"団体信用生命保険（団信）",def:"住宅ローンの借入者が死亡・高度障害状態になった場合に保険金でローン残高が弁済される生命保険。",point:"フラット35では団信加入は任意（民間ローンは原則加入必須）"},
+{f:"A",term:"ライフプランニング",def:"人生の各段階（ライフステージ）において、必要な資金の準備・運用・活用計画を立て実行していくプロセス。",point:"ライフイベント表・キャッシュフロー表・個人バランスシートが基本3表"},
+{f:"A",term:"個人バランスシート",def:"ある時点における個人の資産と負債を一覧にし、純資産（正味財産）を把握するための表。",point:"純資産 = 資産合計 − 負債合計"},
+{f:"A",term:"FPの関連法規（税理士法）",def:"税理士資格を有しないFPは、個別具体的な税務相談・税務書類の作成・納税額の計算等を有償で行うことができない。",point:"一般的な税制の説明・解説は可能"},
+{f:"A",term:"FPの関連法規（保険業法）",def:"生命保険・損害保険の募集行為（勧誘・契約締結の代理・媒介）を行うには、生命保険募集人・損害保険代理店等の登録が必要。",point:"一般的な保険の説明・比較は登録不要"},
+
+// ===== B. リスク管理 (35語) =====
+{f:"B",term:"大数の法則",def:"多数の事象を観察すると結果が理論上の確率に近づくという統計的法則。保険料算出の基礎。",point:"保険料計算の3予定率：予定死亡率・予定利率・予定事業費率"},
+{f:"B",term:"収支相等の原則",def:"保険会社が受け取る保険料総額（＋運用益）と、支払う保険金・事業費の総額が等しくなるように保険料を設定する原則。",point:"大数の法則とともに保険料計算の根拠"},
+{f:"B",term:"純保険料",def:"保険料のうち、保険金・給付金の支払いに充てられる部分。",point:"保険料 = 純保険料 ＋ 付加保険料"},
+{f:"B",term:"付加保険料",def:"保険料のうち、保険会社の事業費（人件費・管理費等）に充てられる部分。予定事業費率に基づく。",point:"純保険料＋付加保険料＝営業保険料"},
+{f:"B",term:"クーリング・オフ",def:"申込日または書面受領日のいずれか遅い日から8日以内に書面で申込みの撤回・解除ができる制度。",point:"保険期間が1年以下の契約や法人契約は対象外の場合あり"},
+{f:"B",term:"告知義務",def:"保険契約者・被保険者が契約締結時に質問された事項について事実を正確に申告する義務。",point:"違反：保険会社は解除権を行使でき保険金不払の可能性"},
+{f:"B",term:"地震保険",def:"地震・噴火・津波を原因とする火災・損壊・埋没・流失による損害を補償する保険。火災保険に付帯してのみ契約可能。",point:"保険金額は火災保険の30〜50%。国と民間の共同引受"},
+{f:"B",term:"自賠責保険",def:"自動車損害賠償保障法に基づく強制保険。対人事故の被害者救済が目的。死亡限度額は被害者1人につき3,000万円。",point:"すべての自動車の所有者に加入義務あり。対物事故は対象外"},
+{f:"B",term:"リビング・ニーズ特約",def:"余命6ヵ月以内と診断された場合に死亡保険金の全部または一部を生前に受け取れる特約。追加保険料なしで付加されることが多い。",point:"受取保険金は非課税（相続税の対象外）"},
+{f:"B",term:"ハーフタックスプラン",def:"法人契約の養老保険で、満期保険金受取人を法人・死亡保険金受取人を遺族とし保険料の1/2を損金算入できる福利厚生プラン。",point:"全役員・全従業員を被保険者とする「普遍的加入」が要件"},
+{f:"B",term:"予定利率",def:"保険会社が保険料の運用について契約者に約束する運用利回りの最低保証率。高いほど保険料は安くなる。",point:"予定利率が高い＝保険料が安い（運用益が大きく見込めるため）"},
+{f:"B",term:"解約返戻金",def:"生命保険の契約を途中で解約した場合に保険会社から払い戻される金額。一般に払込保険料の合計より少ない（特に契約初期）。",point:"定期保険・第三分野保険は解約返戻金がゼロまたは少額のものが多い"},
+{f:"B",term:"払済保険",def:"保険料の払い込みを中止し、その時点の解約返戻金をもとに元の保険種類のまま保険金額を減額して保障を継続する方法。",point:"保険期間は変わらない。延長（定期）保険と区別する"},
+{f:"B",term:"延長（定期）保険",def:"保険料の払い込みを中止し、その時点の解約返戻金をもとに元の保険金額のまま定期保険に変更する方法。",point:"保険期間が短くなる（または養老保険に変更）。払済保険と区別する"},
+{f:"B",term:"契約者貸付",def:"生命保険の解約返戻金の一定範囲内で保険会社から借入できる制度。保険契約は継続したまま資金を調達できる。",point:"利息あり。返済しないと解約返戻金から差し引かれる"},
+{f:"B",term:"生命保険の保険金課税（契約形態）",def:"契約者・被保険者・受取人の組み合わせにより課税関係が変わる。契約者＝被保険者→受取人：相続税。契約者＝受取人≠被保険者：所得税（一時所得）。契約者≠被保険者≠受取人：贈与税。",point:"最頻出の課税パターン：契約者＝被保険者→受取人は相続税"},
+{f:"B",term:"個人年金保険",def:"一定期間または生涯にわたって年金を受け取ることができる生命保険商品。個人年金保険料税制適格特約を付加すると個人年金保険料控除の対象になる。",point:"受取時：雑所得（公的年金等以外）として課税"},
+{f:"B",term:"変額保険",def:"保険料の一部を株式・債券等で運用し、運用実績によって保険金額・解約返戻金が変動する生命保険。死亡保険金には最低保証がある。",point:"解約返戻金には最低保証なし（元本割れリスクあり）"},
+{f:"B",term:"第三分野の保険",def:"医療保険・がん保険・介護保険・所得補償保険など、生命保険（第一分野）と損害保険（第二分野）の中間に位置する保険。",point:"がん保険：契約後3ヵ月（90日）の待機期間が一般的"},
+{f:"B",term:"先進医療特約",def:"厚生労働大臣が定める先進医療を受けた場合に技術料相当額を給付する特約。対象技術は随時変更される。",point:"先進医療の技術内容は契約後も変更される（固定されない）"},
+{f:"B",term:"所得補償保険",def:"病気やケガで就業不能になった場合の収入減少を補償する損害保険の一種。自営業者・フリーランスに特に有用。",point:"支払免責期間（免責日数）経過後から給付開始"},
+{f:"B",term:"生産物賠償責任保険（PL保険）",def:"製造・販売した製品の欠陥により第三者に損害を与えた場合に備える賠償責任保険。製造物責任法（PL法）に対応。",point:"企業リスク管理の重要商品"},
+{f:"B",term:"施設所有（管理）者賠償責任保険",def:"施設の所有・管理の欠陥、または施設内での業務遂行中の事故による第三者への賠償責任に備える保険。",point:"飲食店・商業施設・学校等で広く利用"},
+{f:"B",term:"地震保険料控除",def:"個人が支払った地震保険料の全額（上限5万円）を所得控除できる制度。住民税は上限2万5千円。",point:"火災保険料は控除対象外（地震保険料部分のみ）"},
+{f:"B",term:"保険法",def:"2010年施行。保険契約の基本的なルール（告知義務・保険金支払時期・重複保険等）を定める法律。保険業法（監督法）とは異なる。",point:"保険法は契約ルール・保険業法は業者規制"},
+{f:"B",term:"再保険",def:"保険会社が引き受けたリスクの一部を他の保険会社（再保険会社）に転嫁する仕組み。大規模災害に備えるリスク分散手法。",point:"元受保険会社と契約者の関係には影響しない"},
+{f:"B",term:"リスクの保有",def:"損失発生時に自社（自身）で損失を負担することを選択するリスクファイナンシング手法。発生頻度が高く損失が小さいリスクに有効。",point:"保険は低頻度・高損失リスクに適する"},
+{f:"B",term:"特定疾病（三大疾病）保険",def:"がん・急性心筋梗塞・脳卒中の三大疾病に罹患した場合に保険金が支払われる保険。診断・入院・手術等を条件とする場合がある。",point:"保険金支払後に契約が消滅する場合と継続する場合がある"},
+{f:"B",term:"長期平準定期保険",def:"保険期間が長期（例：80歳・99歳満了）の定期保険。保険料が高いが保障期間が長く、保険期間の前半は解約返戻率が高くなる。",point:"法人での活用：最高解約返戻率により損金算入割合が変わる"},
+{f:"B",term:"保険契約者保護機構",def:"保険会社が破綻した場合に契約者を保護するための機構。生命保険・損害保険で別々に設置。保険金の一定割合を補償する。",point:"生命保険：責任準備金の90%を補償が原則"},
+{f:"B",term:"逆選択",def:"健康状態が悪い人ほど保険に加入しようとする傾向。保険会社は告知義務・医的診査等でリスクを管理する。",point:"保険制度の健全性維持のために告知義務が重要"},
+{f:"B",term:"モラルハザード",def:"保険に加入することで被保険者が注意を怠ったり故意に損失を発生させようとすること。保険制度の健全性を損なうリスク。",point:"免責事項・自己負担設定等で防止"},
+{f:"B",term:"傷害保険",def:"急激・偶然・外来の事故による身体の傷害（死亡・後遺障害・入院・手術等）を補償する損害保険。",point:"急激・偶然・外来の3要件がすべて必要"},
+{f:"B",term:"火災保険の実損払い",def:"火災保険では損害額を保険金額の範囲内で実際の損害額をそのまま支払う（実損払い方式）。超過保険・一部保険の概念が重要。",point:"一部保険：保険金額が保険価額を下回る場合→比例払いとなる"},
+{f:"B",term:"個人賠償責任保険",def:"日常生活において偶然の事故で第三者に損害を与えた場合の賠償責任を補償する保険。自転車事故等もカバー可。",point:"家族全員（同居・別居の未婚の子含む）を補償するものが多い"},
+
+// ===== C. 金融資産運用 (35語) =====
+{f:"C",term:"PER（株価収益率）",def:"株価を1株当たり純利益（EPS）で割った値。株価が利益の何倍かを示す。高いほど割高とされる。",point:"PER＝株価 ÷ EPS　目安：15〜20倍"},
+{f:"C",term:"PBR（株価純資産倍率）",def:"株価を1株当たり純資産（BPS）で割った値。1倍が解散価値の目安。",point:"PBR＝株価 ÷ BPS　1倍以下は割安感とされる"},
+{f:"C",term:"ROE（自己資本利益率）",def:"当期純利益を自己資本で割った値。株主から見た収益性を示す指標。ROAは総資産で割る。",point:"ROE＝当期純利益 ÷ 自己資本 × 100"},
+{f:"C",term:"配当利回り",def:"1株当たりの年間配当金を株価で割った値。株式投資の収益指標のひとつ。",point:"配当利回り＝1株当たり年間配当金 ÷ 株価 × 100"},
+{f:"C",term:"デュレーション",def:"債券への投資元本を回収するまでの期間の加重平均。残存期間が長いほど・クーポンが低いほど大きく、金利変動に対する価格感応度が高い。",point:"デュレーション大＝金利変動リスク大"},
+{f:"C",term:"信用リスク（デフォルトリスク）",def:"債券の発行体が利息・元本を約束どおり支払えなくなるリスク。格付けが低いほど信用リスクが高く利回りが高い。",point:"格付けが高い（AAA等）ほど利回りは低い"},
+{f:"C",term:"NISA（新NISA）",def:"2024年から恒久化された少額投資非課税制度。つみたて投資枠（年120万）＋成長投資枠（年240万）。非課税保有限度額は計1,800万円。",point:"NISA内の損失は他口座と損益通算不可"},
+{f:"C",term:"シャープレシオ",def:"超過リターン（ポートフォリオの収益率 − 無リスク資産の利率）をリスク（標準偏差）で割った値。大きいほど効率的な運用。",point:"シャープレシオ＝超過リターン ÷ 標準偏差"},
+{f:"C",term:"TTS・TTB（外貨預金）",def:"TTS（Selling）は顧客が円→外貨に換える際のレート。TTB（Buying）は外貨→円に換える際のレート。",point:"TTS＞TTM（仲値）＞TTB の関係"},
+{f:"C",term:"投資信託の信託報酬",def:"投資信託の運用・管理にかかる費用として保有期間中に継続的に差し引かれる費用。アクティブ運用はパッシブより一般的に高い。",point:"購入時手数料（ノーロードは0円）とは別費用"},
+{f:"C",term:"相関係数",def:"2つの資産の値動きの相関性を示す指数（−1〜+1）。マイナスに近いほど分散投資効果が大きく、+1では分散効果がない。",point:"相関係数＝−1で最大の分散効果"},
+{f:"C",term:"表面利率（クーポンレート）",def:"債券の額面金額に対して支払われる利息の割合。市場金利と異なる場合に債券価格が変動する。",point:"市場金利上昇→既発債の価格下落（逆相関）"},
+{f:"C",term:"債券の利回り計算",def:"債券への投資から得られる年平均収益率。応募者利回り・最終利回り・所有期間利回りがある。",point:"最終利回り＝｛クーポン＋（額面−購入価格）÷残存年数｝÷購入価格×100"},
+{f:"C",term:"株式の配当控除",def:"法人から受け取る配当について、配当所得を総合課税として確定申告した場合に受けられる税額控除。二重課税の調整が目的。",point:"上場株式の配当：申告分離課税・申告不要・総合課税から選択可"},
+{f:"C",term:"投資信託のクローズド期間",def:"原則としてファンドの解約（途中換金）ができない期間。信託契約に定められた期間。",point:"クローズド期間中は解約不可（例外あり）"},
+{f:"C",term:"アクティブ運用",def:"ベンチマーク（市場平均等）を上回る運用成果を目指す運用手法。銘柄選択・市場予測等により高コスト（信託報酬が高い）。",point:"パッシブ運用（インデックス運用）より信託報酬が高い傾向"},
+{f:"C",term:"パッシブ運用（インデックス運用）",def:"特定の指数（日経平均・TOPIXなど）に連動する運用成果を目指す運用手法。低コストで分散投資効果が高い。",point:"信託報酬はアクティブ運用より低い傾向"},
+{f:"C",term:"ETF（上場投資信託）",def:"証券取引所に上場されている投資信託。株式と同様にリアルタイムで売買できる。信託報酬は一般的に低い。",point:"分配金は普通分配金のみ（特別分配金はない）"},
+{f:"C",term:"外貨預金の為替差益課税",def:"外貨預金の為替差益は、原則として雑所得として総合課税の対象となる（申告分離課税ではない）。",point:"利息部分は利子所得として源泉分離課税"},
+{f:"C",term:"景気動向指数",def:"内閣府が発表する景気の現状把握・将来予測のための指標。先行指数・一致指数・遅行指数の3種類がある。",point:"一致指数の代表：有効求人倍率・鉱工業生産指数等"},
+{f:"C",term:"日銀短観",def:"日本銀行が全国の企業約1万社を対象に四半期ごとに実施する経済観測調査。業況判断DI（良い−悪いの回答割合の差）が注目される。",point:"年4回（3・6・9・12月）発表"},
+{f:"C",term:"消費者物価指数（CPI）",def:"一般消費者が購入する財・サービスの価格変動を示す指数。物価の動向・インフレ率の把握に使われる。",point:"企業間取引の価格変動は「企業物価指数」（混同注意）"},
+{f:"C",term:"預金保険制度（ペイオフ）",def:"金融機関が破綻した場合に、預金者1人当たり金融機関ごとに元本1,000万円とその利息まで保護される制度。決済用預金は全額保護。",point:"外貨預金・譲渡性預金・元本保証のない金融商品は対象外"},
+{f:"C",term:"日本投資者保護基金",def:"証券会社が破綻した場合に、分別管理不足による顧客資産の不足分を1人当たり1,000万円まで補償する機構。",point:"証券会社の顧客向け（銀行預金の預金保険制度とは別）"},
+{f:"C",term:"株式の信用取引",def:"証拠金を担保に株式を借りて売ったり（空売り）、資金を借りて株式を買ったりする取引。レバレッジ効果がある反面リスクも大きい。",point:"信用取引の決済期限：制度信用取引は原則6ヵ月"},
+{f:"C",term:"オプション取引",def:"特定の原資産を将来の一定期日に特定価格で売買する権利を取引するもの。買う権利（コール）・売る権利（プット）がある。",point:"権利の買い手は損失が限定（プレミアム＝オプション料）"},
+{f:"C",term:"財形貯蓄",def:"勤労者が事業主を通じて給与から天引きして積み立てる貯蓄制度。一般財形・財形年金・財形住宅の3種類がある。",point:"財形年金＋財形住宅：元本550万円まで利子が非課税"},
+{f:"C",term:"J-REIT（不動産投資信託）",def:"投資家から集めた資金で不動産等に投資し、賃貸収入・売却益を分配する投資信託。証券取引所に上場。",point:"分配金は配当所得として課税。配当控除は適用外"},
+{f:"C",term:"ゼロクーポン債（割引債）",def:"利息（クーポン）の支払いがなく、額面より低い価格で発行され満期に額面で償還される債券。",point:"利益は発行時の割引額（償還差益）として雑所得に課税"},
+{f:"C",term:"長期金利",def:"主に10年物国債の利回りが指標となる金利。景気・物価・日銀政策等に影響される。株価・不動産価格と逆相関の傾向。",point:"長期金利上昇→債券価格下落・株価への影響"},
+{f:"C",term:"株式の単元株制度",def:"証券取引所で売買できる株式の最低売買単位（単元）。日本では原則100株が1単元。単元未満株は議決権なし。",point:"単元株制度により小口投資家も参加しやすい"},
+{f:"C",term:"投資信託の純資産総額（NAV）",def:"投資信託が保有する資産の時価総額から負債を引いた額。基準価額＝純資産総額 ÷ 受益権口数 で算出される。",point:"基準価額は原則として1日1回計算・公表される"},
+{f:"C",term:"ポートフォリオの期待収益率",def:"複数の資産で構成されるポートフォリオ全体の期待収益率は、各資産の期待収益率を投資比率で加重平均した値。",point:"分散投資によりリスク（標準偏差）は加重平均より小さくできる"},
+{f:"C",term:"為替リスク",def:"外貨建て資産の保有時に為替レートの変動により円換算額が変動するリスク。円高→外貨建て資産の円換算額が減少。",point:"円高：外貨建て資産に不利。円安：有利"},
+{f:"C",term:"物価連動国債",def:"元金額が物価（消費者物価指数）に連動して増減する国債。インフレリスクへのヘッジ手段として活用される。",point:"デフレ局面では元金が保証される（フロア機能）"},
+
+// ===== D. タックスプランニング (35語) =====
+{f:"D",term:"所得控除",def:"課税所得から差し引く控除。基礎控除・配偶者控除・扶養控除・社会保険料控除・医療費控除等。控除額×税率分だけ節税できる。",point:"税額控除（税額から直接差し引く）とは仕組みが異なる"},
+{f:"D",term:"税額控除",def:"算出した税額から直接差し引く控除。所得控除より節税効果が大きい。住宅ローン控除・配当控除・外国税額控除等がある。",point:"住宅ローン控除は「税額控除」（所得控除ではない）"},
+{f:"D",term:"損益通算",def:"同一年分の各種所得の損失と利益を相殺する手続き。不動産・事業・山林・譲渡所得の損失は他の所得と通算可能（一部制限あり）。",point:"上場株式の譲渡損失は給与所得等と通算不可"},
+{f:"D",term:"青色申告特別控除",def:"青色申告者が一定要件（e-Tax申告・複式簿記・貸借対照表添付）を満たした場合に受けられる最高65万円の控除。",point:"簡易帳簿の場合は10万円。事業・不動産・山林所得が対象"},
+{f:"D",term:"基礎控除",def:"すべての納税者が受けられる所得控除。所得税では合計所得金額2,400万円以下で48万円（2025年以降引き上げ予定）。",point:"2,500万円超で適用なし。住民税の基礎控除は43万円"},
+{f:"D",term:"医療費控除",def:"（支払医療費 − 保険金等補填額）− 10万円（合計所得金額の5%のいずれか低い方）を所得から控除できる制度。",point:"生計を一にする家族の医療費をまとめて申告可"},
+{f:"D",term:"生命保険料控除",def:"支払った生命保険料を所得から控除できる制度。一般生命保険料・介護医療保険料・個人年金保険料の3区分。所得税は各最高4万円（計12万円）。",point:"新契約（H24.1.1以後）上限：各4万円　旧契約：各5万円"},
+{f:"D",term:"住宅ローン控除",def:"住宅ローンを利用してマイホームを取得した場合、年末ローン残高の0.7%を最長13年間、税額から控除できる制度。",point:"床面積50㎡以上が原則。初年度は確定申告が必要"},
+{f:"D",term:"特定扶養控除",def:"19歳以上23歳未満の扶養親族（特定扶養親族）に適用される控除。控除額は63万円（一般扶養控除38万円より高額）。",point:"大学生の子がいる場合に多く適用される"},
+{f:"D",term:"配偶者控除",def:"合計所得金額48万円以下の配偶者がいる場合に受けられる所得控除（38万円）。納税者本人の所得が900万円超で段階的に減額。",point:"1,000万円超の場合は配偶者控除の適用なし"},
+{f:"D",term:"配偶者特別控除",def:"配偶者の合計所得金額が48万円超133万円以下の場合に受けられる所得控除。控除額は配偶者の所得と本人の所得に応じて変動。",point:"配偶者控除と配偶者特別控除は同時に適用不可"},
+{f:"D",term:"給与所得控除",def:"給与収入から差し引かれる概算経費的な控除。収入に応じて段階的に設定されており、最低保障額は65万円（給与収入190万円以下）。",point:"2025年〜：最低保障額が55万円→65万円に引き上げ"},
+{f:"D",term:"退職所得",def:"退職金・一時恩給等の所得。（収入金額 − 退職所得控除額）× 1/2 が課税対象。分離課税。勤続年数が長いほど控除額が大きい。",point:"退職所得控除：勤続20年以下→40万円×年数、超は70万円×（年数−20年）＋800万円"},
+{f:"D",term:"一時所得",def:"懸賞・競馬の払戻金・生命保険の満期保険金（契約者＝受取人）等。（収入−費用−50万円）×1/2 が課税対象。総合課税。",point:"特別控除50万円があるため、小額なら課税されない場合が多い"},
+{f:"D",term:"雑所得",def:"他のどの所得区分にも該当しない所得。公的年金・原稿料・個人年金保険の年金等が含まれる。",point:"公的年金等の雑所得：公的年金等控除が適用される"},
+{f:"D",term:"不動産所得",def:"土地・建物の賃貸による所得。収入から必要経費（減価償却費・修繕費・借入金利息等）を差し引いて算出。",point:"土地取得に係る借入金利子分は損益通算不可（建物分はOK）"},
+{f:"D",term:"事業所得",def:"農業・漁業・製造業・卸小売業・サービス業等の事業から生じる所得。収入から必要経費を引いて算出。青色申告の対象。",point:"事業所得と不動産所得は区分が重要（規模・実態で判断）"},
+{f:"D",term:"申告分離課税",def:"他の所得と合算せずに一定の税率で単独に課税する方式。上場株式等の譲渡所得・不動産の長期・短期譲渡所得等が対象。",point:"上場株式等：税率20%（所得税15%＋住民税5%）"},
+{f:"D",term:"源泉分離課税",def:"支払者が支払時に一定の税率で所得税を源泉徴収し、その課税関係を完結させる方式。確定申告不要。預貯金の利子等が対象。",point:"預貯金の利子：20.315%（所得税15.315%＋住民税5%）"},
+{f:"D",term:"確定申告",def:"毎年1〜12月分の所得・税額を翌年2月16日から3月15日までに税務署に申告・納税する手続き。",point:"給与所得者でも医療費控除・住宅ローン控除初年度等は要申告"},
+{f:"D",term:"年末調整",def:"給与の支払者（会社）が年末に各従業員の1年間の給与に係る所得税額を精算する手続き。給与収入2,000万円超は対象外。",point:"住宅ローン控除（2年目以降）・生命保険料控除等は年末調整で適用可"},
+{f:"D",term:"減価償却",def:"建物・機械等の固定資産の取得価額を、耐用年数に応じて各年に費用として配分する手続き。土地は対象外。",point:"定額法：毎年同額。定率法：毎年残存価値の一定割合（残高逓減）"},
+{f:"D",term:"法人税の損金",def:"法人税の計算上、益金から差し引くことができる費用。役員報酬・交際費・寄附金等には損金算入の制限がある。",point:"法人税・地方法人税自体は損金不算入"},
+{f:"D",term:"交際費等の損金算入",def:"資本金1億円以下の中小法人は、交際費のうち飲食費の50%または800万円以下の交際費を損金算入可。",point:"大法人は飲食費の50%のみ損金算入可"},
+{f:"D",term:"長期譲渡所得（不動産）",def:"譲渡した年の1月1日時点で所有期間が5年超の土地・建物の譲渡所得。税率は所得税15%・住民税5%（合計20%）。",point:"5年以下：短期譲渡所得→税率30%（所得税）＋9%（住民税）"},
+{f:"D",term:"ふるさと納税（寄附金控除）",def:"地方自治体への寄附に対する税制優遇。寄附金額 − 2,000円 を所得控除（確定申告）または税額控除（ワンストップ特例）として控除できる。",point:"ワンストップ特例：確定申告不要（ただし確定申告する場合は使用不可）"},
+{f:"D",term:"消費税の課税事業者",def:"基準期間（2年前）の課税売上高が1,000万円超の事業者は消費税の課税事業者となり申告・納付義務がある。",point:"インボイス（適格請求書）登録事業者は基準期間の売上にかかわらず課税事業者"},
+{f:"D",term:"簡易課税制度",def:"基準期間の課税売上高が5,000万円以下の事業者が選択できる消費税の計算方法。みなし仕入率（業種別）で仕入税額控除を計算。",point:"5,000万円超は選択不可。事前届出が必要"},
+{f:"D",term:"所得税の超過累進税率",def:"所得が高くなるにつれて税率が段階的に上がる仕組み。現行は5%〜45%の7段階。課税所得全体に最高税率がかかるわけではない。",point:"課税所得4,000万円超：45%（最高税率）"},
+{f:"D",term:"青色事業専従者給与",def:"青色申告者が生計を一にする家族従業員に支払う給与を、届出の範囲内で必要経費として全額算入できる制度。",point:"白色申告は事業専従者控除（最高86万円）のみ"},
+{f:"D",term:"特定口座（源泉徴収あり）",def:"証券会社が投資家に代わって年間の損益を計算し、利益に対する税金を源泉徴収する口座。原則確定申告不要。",point:"確定申告することも可能（損益通算等のメリットがある場合）"},
+
+// ===== E. 不動産 (30語) =====
+{f:"E",term:"不動産登記の公信力",def:"日本の不動産登記には公信力がない。登記を信頼して取引しても、登記内容が事実と異なる場合は原則として保護されない。",point:"公示力（閲覧可能）はあるが、公信力（信頼保護）はない"},
+{f:"E",term:"接道義務",def:"建築物の敷地は原則として幅員4m以上の道路に2m以上接していなければならないとする建築基準法上の義務。",point:"満たさない土地は原則建築不可（再建築不可物件）"},
+{f:"E",term:"建蔽率",def:"敷地面積に対する建築面積（建物を真上から見た面積）の割合。用途地域ごとに上限が定められている。",point:"防火地域内で耐火建築物を建築する場合等に緩和あり"},
+{f:"E",term:"容積率",def:"敷地面積に対する延べ面積（各階の床面積の合計）の割合。前面道路幅員が12m未満の場合は制限が厳しくなる。",point:"指定容積率と前面道路幅員×法定乗数の小さい方が適用"},
+{f:"E",term:"定期借家契約",def:"契約期間満了により必ず契約が終了する借家契約。公正証書等の書面による契約と事前説明（書面交付）が必要。",point:"1年未満の期間設定も可（普通借家は1年未満→期間の定めなし）"},
+{f:"E",term:"不動産取得税",def:"不動産を取得した際に都道府県が課す地方税。土地・建物の評価額に一定税率（原則4%、住宅等は3%）を乗じて計算。",point:"相続による取得は非課税。贈与・売買は課税対象"},
+{f:"E",term:"固定資産税",def:"毎年1月1日時点の固定資産（土地・家屋・償却資産）の所有者に市区町村が課す地方税。税率は原則1.4%。",point:"小規模住宅用地（200㎡以下）は課税標準が1/6に軽減"},
+{f:"E",term:"3,000万円特別控除",def:"居住用財産を譲渡した場合に譲渡益から最高3,000万円を控除できる特例。所有期間の長短は問わない。",point:"配偶者・直系血族など特別関係者への譲渡には適用不可"},
+{f:"E",term:"区分所有法の特別決議",def:"マンションの規約変更や建替えなどに必要な決議。規約変更は各3/4以上、建替え決議は各4/5以上の賛成が必要。",point:"普通決議は区分所有者・議決権の各過半数"},
+{f:"E",term:"公示価格",def:"国土交通省が毎年1月1日を価格判定基準日として3月頃に公表する土地の正常価格。各種評価の基準となる。",point:"相続税路線価：公示価格の約80%　固定資産税評価額：約70%"},
+{f:"E",term:"相続税路線価",def:"相続税・贈与税の計算に使用する、路線（道路）に面した標準的な宅地1㎡当たりの評価額。毎年1月1日が評価基準日。",point:"公示価格の約80%を目安に設定"},
+{f:"E",term:"不動産鑑定評価の3手法",def:"①原価法（再調達原価−減価修正）②取引事例比較法（類似取引事例との比較）③収益還元法（将来収益の現在価値）の3つ。",point:"DCF法は収益還元法の一種"},
+{f:"E",term:"都市計画税",def:"市街化区域内の土地・建物の所有者に課される地方税。固定資産税と合わせて課税される。税率は最高0.3%。",point:"すべての固定資産に課されるわけではない（市街化区域内のみ）"},
+{f:"E",term:"借地借家法（普通借家契約）",def:"期間の定めのある場合は期間満了で終了が原則だが、賃貸人が更新拒絶するには「正当の事由」が必要。",point:"更新拒絶には正当の事由＋6ヵ月前の通知が必要"},
+{f:"E",term:"抵当権",def:"債務者または第三者（物上保証人）が債務の担保として提供した不動産に、債権者が設定する担保物権。",point:"抵当権者は物件を占有せずに担保権を持てる"},
+{f:"E",term:"宅地建物取引業者の義務（重要事項説明）",def:"宅地建物取引業者は、売買・賃貸の契約締結前に宅地建物取引士が記名した書面（重要事項説明書）を交付し説明しなければならない。",point:"説明するのは宅地建物取引士（資格者）のみ"},
+{f:"E",term:"長期譲渡所得の特例（軽減税率）",def:"所有期間10年超の居住用財産の譲渡益のうち6,000万円以下の部分について、軽減税率（所得税10%・住民税4%）が適用される特例。",point:"3,000万円特別控除と併用可"},
+{f:"E",term:"特定の居住用財産の買換え特例",def:"居住用財産を譲渡して新たな居住用財産に買換える場合に、譲渡益に対する課税を将来に繰り延べることができる特例。",point:"課税の繰り延べ（免除ではない）。一定の要件あり"},
+{f:"E",term:"用途地域",def:"都市計画法に基づき、建築できる建物の種類・規模等を規制するために指定された区域。住居系8種・商業系2種・工業系3種の計13種。",point:"第一種低層住居専用地域：最も用途制限が厳しい"},
+{f:"E",term:"建築基準法の道路",def:"建築基準法上の道路とは原則として幅員4m以上の道路（2項道路＝みなし道路：幅員4m未満でも特定の条件のもと道路とみなす）。",point:"2項道路に接する場合はセットバック（後退）が必要"},
+{f:"E",term:"等価交換方式",def:"土地所有者が土地を提供し、デベロッパーが建物建設資金を負担して、完成した建物を土地・資金の価値比率で分け合う事業方式。",point:"土地所有者は資金負担なし。土地所有権の一部を手放す"},
+{f:"E",term:"事業受託方式",def:"土地所有者がデベロッパー等に建物建設・管理運営等の事業全体を委託する方式。土地所有権は土地所有者に留まる。",point:"土地所有者はリスクを負うが、収益も土地所有者のもの"},
+{f:"E",term:"建設協力金方式",def:"テナント等から建設資金の一部を預り金（建設協力金）として受け取り、土地所有者が建物を建設する方式。建設協力金は無利息または低利で返済。",point:"土地所有者は自己資金を抑えながら建物建設できる"},
+{f:"E",term:"不動産登記の表題部・権利部",def:"表題部：土地・建物の所在・地番・面積等の物理的状況を記録。権利部甲区：所有権。権利部乙区：所有権以外（抵当権・地上権等）。",point:"表題部の登記は義務。権利部の登記は任意（対抗力取得のため実質必須）"},
+{f:"E",term:"不動産の手付金（解約手付）",def:"売買契約締結時に交わされる手付金は、特段の合意がない限り解約手付として扱われる。買主は放棄・売主は倍額提供で解除可。",point:"相手方が履行に着手した後は解約手付による解除不可"},
+{f:"E",term:"住宅地図（ブルーマップ）",def:"住宅地図に公図情報（地番・地目等）を重ね合わせた地図。不動産調査の際に法務局備え付けのものが利用される。",point:"不動産調査の基礎ツール"},
+{f:"E",term:"固定資産税評価額",def:"市区町村が固定資産税・都市計画税の課税のために算定する土地・家屋の評価額。3年ごとに評価替えが行われる。",point:"公示価格の約70%を目安に設定"},
+{f:"E",term:"借地権",def:"建物の所有を目的として他人の土地を使用する権利。地上権（物権）と賃借権（債権）があり、借地借家法により保護される。",point:"普通借地権：存続期間30年以上（最初の更新20年・以後10年）"},
+{f:"E",term:"開発許可制度",def:"都市計画法に基づき、一定規模以上の開発行為（建築物の建設のための土地の区画形質の変更）には都道府県知事等の許可が必要とする制度。",point:"市街化区域内：原則1,000㎡以上の開発に許可必要"},
+{f:"E",term:"不動産の瑕疵担保責任→契約不適合責任",def:"2020年民法改正で「瑕疵担保責任」から「契約不適合責任」に変更。売主は目的物が契約内容に適合しない場合に責任を負う。",point:"責任の種類：追完請求・代金減額請求・損害賠償請求・解除"},
+
+// ===== F. 相続・事業承継 (25語) =====
+{f:"F",term:"法定相続人の順位",def:"配偶者は常に相続人。血族は①子（代襲あり）②直系尊属（父母・祖父母）③兄弟姉妹（代襲1代限り）の順。先順位がいると後順位は相続しない。",point:"兄弟姉妹には遺留分がない"},
+{f:"F",term:"法定相続分",def:"配偶者と子：各1/2。配偶者と直系尊属：配偶者2/3・直系尊属1/3。配偶者と兄弟姉妹：配偶者3/4・兄弟姉妹1/4。",point:"非嫡出子の相続分は嫡出子と同等（2013年民法改正）"},
+{f:"F",term:"遺留分",def:"遺言によっても侵害できない最低限の相続財産の割合。配偶者・子・直系尊属に認められる（兄弟姉妹には認められない）。",point:"総体的遺留分：直系尊属のみの場合1/3、その他1/2"},
+{f:"F",term:"相続税の基礎控除",def:"相続税の課税対象遺産から差し引く控除額。「3,000万円 ＋ 600万円 × 法定相続人の数」で計算される。",point:"相続放棄者がいても法定相続人の数に含める（計算上）"},
+{f:"F",term:"死亡保険金の非課税枠",def:"相続人が受け取る死亡保険金（みなし相続財産）の非課税限度額。「500万円 × 法定相続人の数」まで非課税。",point:"相続放棄者が受け取った場合は非課税枠の適用なし"},
+{f:"F",term:"配偶者の税額軽減",def:"配偶者が相続した財産が「法定相続分相当額」と「1億6,000万円」のいずれか多い方の金額まで、相続税が非課税となる制度。",point:"申告が要件（申告期限までに遺産分割確定が必要）"},
+{f:"F",term:"暦年贈与の基礎控除",def:"贈与税は受贈者1人当たり年間110万円の基礎控除がある。年間贈与合計額が110万円以下なら贈与税は課されない。",point:"「毎年必ず定額を贈与する」契約は連年贈与とみなされる場合あり"},
+{f:"F",term:"相続時精算課税制度",def:"60歳以上の父母・祖父母から18歳以上の子・孫への贈与に適用できる制度。累計2,500万円まで贈与税非課税（年110万円の基礎控除も別途あり）。死亡時に相続税で精算。",point:"一度選択すると同じ贈与者からの贈与に暦年課税へ戻せない"},
+{f:"F",term:"小規模宅地等の特例",def:"相続した宅地等が一定要件を満たす場合に、相続税評価額を最大80%減額できる特例。特定居住用宅地等は330㎡まで80%減。",point:"申告要件あり・同居等の要件に注意"},
+{f:"F",term:"事業承継税制（特例措置）",def:"非上場株式を後継者が相続・贈与で取得した場合に、一定要件のもとで贈与税・相続税の納税が猶予（一定条件で免除）される制度。後継者は親族以外でも可。",point:"5年間の事業継続要件・雇用確保要件などの事後要件あり"},
+{f:"F",term:"遺言の種類（自筆・公正証書）",def:"自筆証書遺言：全文・日付・氏名を自書＋押印。法務局保管制度利用で検認不要。公正証書遺言：公証人が作成、証人2人以上立会。検認不要で確実。",point:"秘密証書遺言は自書不要だが証人2人＋公証人関与が必要"},
+{f:"F",term:"相続放棄",def:"相続人が家庭裁判所に申述して相続を放棄すること。放棄すると初めから相続人でなかったものとみなされる。",point:"相続の開始を知った時から3ヵ月以内に家庭裁判所へ申述"},
+{f:"F",term:"限定承認",def:"相続財産の範囲内でのみ被相続人の債務を承継する相続方法。相続人全員が共同して家庭裁判所に申述する必要がある。",point:"単純承認・限定承認・相続放棄の選択期限は3ヵ月以内"},
+{f:"F",term:"代襲相続",def:"相続人（子・兄弟姉妹）が相続開始前に死亡・欠格・廃除された場合に、その者の子（孫・甥・姪）が代わりに相続すること。",point:"放棄した者の子は代襲相続不可。兄弟姉妹の代襲は1代限り"},
+{f:"F",term:"相続登記の義務化",def:"2024年4月から相続により不動産を取得したことを知った日から3年以内に相続登記の申請が義務化された。",point:"正当な理由なく申請しない場合は10万円以下の過料"},
+{f:"F",term:"遺産分割協議",def:"相続人全員が協議して遺産の分割方法を決めること。相続人全員の合意が必要で、遺産分割協議書を作成する。",point:"相続人の一人でも欠けると無効。後から発見された財産は再協議"},
+{f:"F",term:"相続税の2割加算",def:"配偶者・被相続人の1親等の血族（代襲相続人となった孫を含む）以外の者が相続・遺贈で財産を取得した場合、相続税額が2割加算される。",point:"兄弟姉妹・孫（代襲以外）・第三者は2割加算の対象"},
+{f:"F",term:"贈与税の配偶者控除",def:"婚姻期間20年以上の配偶者に居住用不動産または居住用不動産取得資金を贈与した場合、最高2,000万円が控除できる特例。",point:"同一の配偶者からは一生に一度のみ適用可"},
+{f:"F",term:"相続税の取得費加算の特例",def:"相続等で取得した財産を相続税の申告期限の翌日から3年以内に譲渡した場合、相続税額の一定額を譲渡所得の取得費に加算できる特例。",point:"相続した不動産を早期に売却する場合に有効"},
+{f:"F",term:"みなし相続財産",def:"民法上は相続財産ではないが、相続税法上は相続財産とみなされて課税対象となる財産。死亡保険金・死亡退職金等。",point:"死亡保険金・死亡退職金：各「500万円×法定相続人の数」まで非課税"},
+{f:"F",term:"生前贈与加算（持ち戻し）",def:"相続開始前の一定期間内に被相続人から受けた贈与財産を相続税の課税価格に加算するルール。2024年〜：3年以内→7年以内に延長。",point:"延長された4年間（4〜7年前）の贈与は合計100万円まで加算対象外"},
+{f:"F",term:"路線価による評価",def:"相続税・贈与税の土地評価は、路線価地域では路線価（千円/㎡）×奥行価格補正率等×地積で計算する。",point:"路線価が設定されていない地域は倍率方式（固定資産税評価額×倍率）"},
+{f:"F",term:"上場株式の評価（相続税）",def:"相続開始日の終値・相続開始月の終値の月平均・前月の終値の月平均・前々月の終値の月平均のうち最も低い価額で評価。",point:"4つの価額のうち最も低い価額を選択できる"},
+{f:"F",term:"M&A（事業承継）",def:"後継者不在の中小企業が第三者（他の企業・個人）に事業を売却・譲渡する手法。株式譲渡・事業譲渡・合併等がある。",point:"近年の中小企業の事業承継においてM&Aの活用が増加"},
+{f:"F",term:"種類株式（事業承継）",def:"会社法上、議決権・配当・残余財産分配等について普通株式と異なる権利内容を持つ株式。議決権制限株式・黄金株（拒否権付株式）等が事業承継で活用される。",point:"黄金株：重要事項に対して拒否権を持つ株式。後継者へ経営権を集中させる際に有効"}
+];
+
+const FIELD_CFG = {
+  'A': {label:'A. ライフ', bg:'#E6F1FB', color:'#185FA5'},
+  'B': {label:'B. リスク', bg:'#FAEEDA', color:'#854F0B'},
+  'C': {label:'C. 金融',  bg:'#E1F5EE', color:'#0F6E56'},
+  'D': {label:'D. タックス', bg:'#EEEDFE', color:'#534AB7'},
+  'E': {label:'E. 不動産', bg:'#FAECE7', color:'#993C1D'},
+  'F': {label:'F. 相続',  bg:'#FBEAF0', color:'#993556'},
+};
+
+let currentField = 'all';
+let deck = [];
+let idx = 0;
+let known = new Set();
+let isFlipped = false;
+
+function buildDeck() {
+  let base = currentField === 'all' ? CARDS : CARDS.filter(c => c.f === currentField);
+  deck = base.filter(c => !known.has(c.term));
+  if (deck.length === 0) deck = base.slice();
+}
+
+function showCard() {
+  if (deck.length === 0) return;
+  isFlipped = false;
+  document.getElementById('flipInner').classList.remove('flipped');
+  document.getElementById('answerBtn').textContent = '答えを見る';
+
+  const c = deck[idx];
+  const cfg = FIELD_CFG[c.f];
+  const fieldTotal = currentField === 'all' ? CARDS.length : CARDS.filter(x => x.f === currentField).length;
+  const knownField = currentField === 'all' ? known.size : CARDS.filter(x => x.f === currentField && known.has(x.term)).length;
+
+  const ft = document.getElementById('frontTag');
+  ft.textContent = cfg.label; ft.style.background = cfg.bg; ft.style.color = cfg.color;
+  document.getElementById('termText').textContent = c.term;
+
+  const bt = document.getElementById('backTag');
+  bt.textContent = cfg.label; bt.style.background = cfg.bg; bt.style.color = cfg.color;
+  document.getElementById('backTerm').textContent = c.term;
+  document.getElementById('defBody').textContent = c.def;
+  document.getElementById('pointBody').textContent = c.point || '';
+
+  document.getElementById('counterBadge').textContent = (idx+1) + ' / ' + deck.length;
+  document.getElementById('progressFill').style.width = Math.round(knownField/fieldTotal*100) + '%';
+  document.getElementById('progressLabel').textContent = knownField + ' / ' + fieldTotal + ' 覚えた';
+  document.getElementById('statTotal').textContent = CARDS.length;
+  document.getElementById('statRemain').textContent = CARDS.length - known.size;
+  document.getElementById('statKnown').textContent = known.size;
+}
+
+function showAnswer() {
+  isFlipped = true;
+  document.getElementById('flipInner').classList.add('flipped');
+  document.getElementById('answerBtn').textContent = '問題に戻る';
+}
+
+// ボタンクリックで表裏切り替え（スワイプとは独立）
+document.getElementById('answerBtn').addEventListener('click', function() {
+  isFlipped = !isFlipped;
+  document.getElementById('flipInner').classList.toggle('flipped', isFlipped);
+  this.textContent = isFlipped ? '問題に戻る' : '答えを見る';
+});
+
+function nextCard() {
+  if (deck.length === 0) return;
+  idx = (idx + 1) % deck.length;
+  showCard();
+}
+function prevCard() {
+  if (deck.length === 0) return;
+  idx = (idx - 1 + deck.length) % deck.length;
+  showCard();
+}
+function markKnown() {
+  if (deck.length === 0) return;
+  known.add(deck[idx].term);
+  buildDeck();
+  idx = Math.min(idx, Math.max(0, deck.length - 1));
+  showCard();
+}
+function filterField(f) {
+  currentField = f;
+  document.querySelectorAll('.filter-chip').forEach(b => b.classList.toggle('active', b.dataset.f === f));
+  buildDeck(); idx = 0; showCard();
+}
+
+// スワイプ：移動量が大きい場合のみ前後移動。小さい場合は何もしない（ボタンで操作）
+const flipWrap = document.querySelector('.flip-wrap');
+let touchStartX = 0, touchStartY = 0, touchMoved = false;
+
+flipWrap.addEventListener('touchstart', e => {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+  touchMoved = false;
+}, {passive: true});
+
+flipWrap.addEventListener('touchmove', e => {
+  touchMoved = true;
+}, {passive: true});
+
+flipWrap.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  // 水平移動が垂直移動より大きく、かつ80px以上のスワイプのみ前後移動
+  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 80) {
+    if (dx < 0) nextCard();
+    else prevCard();
+  }
+  // それ以外は何もしない（タップでの誤操作を防止）
+}, {passive: true});
+
+buildDeck();
+showCard();
+</script>
+</body>
+</html>
