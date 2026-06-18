@@ -403,17 +403,10 @@ function showCard() {
 }
 
 function showAnswer() {
-  isFlipped = true;
-  document.getElementById('flipInner').classList.add('flipped');
-  document.getElementById('answerBtn').textContent = '問題に戻る';
-}
-
-// ボタンクリックで表裏切り替え（スワイプとは独立）
-document.getElementById('answerBtn').addEventListener('click', function() {
   isFlipped = !isFlipped;
   document.getElementById('flipInner').classList.toggle('flipped', isFlipped);
-  this.textContent = isFlipped ? '問題に戻る' : '答えを見る';
-});
+  document.getElementById('answerBtn').textContent = isFlipped ? '問題に戻る' : '答えを見る';
+}
 
 function nextCard() {
   if (deck.length === 0) return;
